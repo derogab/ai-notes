@@ -223,6 +223,29 @@ export default class AiNotesPlugin extends Plugin {
 		new Notice("Transcription added.");
 	}
 
+	private extractTranscriptions(content: string): string[] {
+		const regex = /<details>\s*<summary>Transcription<\/summary>\s*([\s\S]*?)\s*<\/details>/g;
+		const transcriptions: string[] = [];
+		let match: RegExpExecArray | null;
+		while ((match = regex.exec(content)) !== null) {
+			const text = (match[1] ?? "").trim();
+			if (text) transcriptions.push(text);
+		}
+		return transcriptions;
+	}
+
+	private extractUserNotes(content: string): string {
+		const recordingsIndex = content.indexOf('\n## Recordings\n');
+		if (recordingsIndex !== -1) {
+			return content.slice(0, recordingsIndex).trim();
+		}
+		const aiNotesIndex = content.indexOf('\n## AI Notes\n');
+		if (aiNotesIndex !== -1) {
+			return content.slice(0, aiNotesIndex).trim();
+		}
+		return content.trim();
+	}
+
 	private async enrich() {
 		const noteFile = this.getActiveNoteFile();
 		if (!noteFile) {
@@ -230,9 +253,18 @@ export default class AiNotesPlugin extends Plugin {
 			return;
 		}
 
+		// Re-transcribe all recordings first
+		await this.transcribe();
+
 		const content = await this.app.vault.read(noteFile);
 
-		const sourceContent = content.replace(/\n## AI Notes\n[\s\S]*$/, '').trimEnd();
+		const userNotes = this.extractUserNotes(content);
+		const transcriptions = this.extractTranscriptions(content);
+
+		let sourceContent = userNotes;
+		if (transcriptions.length > 0) {
+			sourceContent += '\n\nTranscriptions:\n' + transcriptions.join('\n\n');
+		}
 
 		new Notice("Enriching...");
 
