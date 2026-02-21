@@ -3,7 +3,7 @@
 	"name": "AI Notes",
 	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Record audio, transcribe with whisper.cpp, and generate AI summaries from your notes.",
+	"description": "Record audio, transcribe it, and enrich your written notes with AI-powered insights.",
 	"author": "derogab",
 	"isDesktopOnly": true
 }

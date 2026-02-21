@@ -1,7 +1,7 @@
 {
 	"name": "ai-notes",
 	"version": "0.0.1",
-	"description": "Record audio, transcribe with whisper.cpp, and generate AI summaries in Obsidian",
+	"description": "Record audio, transcribe it, and enrich your written notes with AI-powered insights.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
