@@ -232,6 +232,8 @@ export default class AiNotesPlugin extends Plugin {
 
 		const content = await this.app.vault.read(noteFile);
 
+		const sourceContent = content.replace(/\n## AI Notes\n[\s\S]*$/, '').trimEnd();
+
 		new Notice("Enriching...");
 
 		const body = {
@@ -243,7 +245,7 @@ export default class AiNotesPlugin extends Plugin {
 				},
 				{
 					role: "user",
-					content: content,
+					content: sourceContent,
 				},
 			],
 		};
@@ -278,7 +280,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		const updatedContent = this.replaceSection(
 			await this.app.vault.read(noteFile),
-			"Enrichment",
+			"AI Notes",
 			enrichment
 		);
 		await this.app.vault.modify(noteFile, updatedContent);
@@ -294,28 +296,29 @@ export default class AiNotesPlugin extends Plugin {
 			'</details>',
 		].join('\n');
 
-		const transcriptionMarker = '<summary>Transcription</summary>';
-		if (content.includes(transcriptionMarker)) {
-			const lastDetailsClose = content.lastIndexOf('</details>');
-			const separatorIndex = content.indexOf('\n---', lastDetailsClose);
-			if (separatorIndex !== -1) {
-				const before = content.slice(0, separatorIndex);
-				const after = content.slice(separatorIndex);
+		const recordingsHeading = '## Recordings';
+		const recordingsIndex = content.indexOf(`\n${recordingsHeading}\n`);
+
+		if (recordingsIndex !== -1) {
+			const aiNotesMatch = content.match(/\n## AI Notes\n/);
+			if (aiNotesMatch && aiNotesMatch.index !== undefined) {
+				const before = content.slice(0, aiNotesMatch.index).trimEnd();
+				const after = content.slice(aiNotesMatch.index);
 				return `${before}\n\n${entry}${after}`;
 			}
+			return content.trimEnd() + `\n\n${entry}\n`;
 		}
 
-		const section = `${entry}\n\n---`;
+		const recordingSection = `${recordingsHeading}\n\n${entry}`;
 
-		const titleMatch = content.match(/^# .+\n/);
-		if (titleMatch) {
-			const insertPos = titleMatch.index! + titleMatch[0].length;
-			const before = content.slice(0, insertPos).trimEnd();
-			const after = content.slice(insertPos).trimStart();
-			return `${before}\n\n${section}\n\n${after}`;
+		const aiNotesMatch = content.match(/\n## AI Notes\n/);
+		if (aiNotesMatch && aiNotesMatch.index !== undefined) {
+			const before = content.slice(0, aiNotesMatch.index).trimEnd();
+			const after = content.slice(aiNotesMatch.index).trimStart();
+			return `${before}\n\n${recordingSection}\n\n${after}`;
 		}
 
-		return `${section}\n\n${content}`;
+		return content.trimEnd() + `\n\n${recordingSection}\n`;
 	}
 
 	private async convertToWav(audioData: ArrayBuffer): Promise<ArrayBuffer> {
