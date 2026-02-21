@@ -295,7 +295,7 @@ export default class AiNotesPlugin extends Plugin {
 		let enrichment: string;
 		try {
 			const response = await requestUrl({
-				url: this.settings.llmEndpointUrl,
+				url: `${this.settings.llmEndpointUrl}/chat/completions`,
 				method: "POST",
 				headers,
 				body: JSON.stringify(body),

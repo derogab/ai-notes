@@ -12,7 +12,7 @@ export interface AiNotesSettings {
 export const DEFAULT_SETTINGS: AiNotesSettings = {
 	recordingsFolder: "recordings",
 	whisperServerUrl: "http://localhost:8080",
-	llmEndpointUrl: "http://localhost:11434/v1/chat/completions",
+	llmEndpointUrl: "http://localhost:11434/v1",
 	llmApiKey: "",
 	llmModel: "llama3",
 };
@@ -53,9 +53,9 @@ export class AiNotesSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("LLM endpoint URL")
-			.setDesc("OpenAI-compatible chat completions endpoint.")
+			.setDesc("OpenAI-compatible API base URL (e.g. http://{host:port}/v1).")
 			.addText(text => text
-				.setPlaceholder("http://localhost:11434/v1/chat/completions")
+				.setPlaceholder("http://localhost:11434/v1")
 				.setValue(this.plugin.settings.llmEndpointUrl)
 				.onChange(async (value) => {
 					this.plugin.settings.llmEndpointUrl = value;
