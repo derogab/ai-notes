@@ -3,7 +3,8 @@ import AiNotesPlugin from "./main";
 
 export interface AiNotesSettings {
 	recordingsFolder: string;
-	whisperServerUrl: string;
+	whisperEndpointUrl: string;
+	whisperModel: string;
 	llmEndpointUrl: string;
 	llmApiKey: string;
 	llmModel: string;
@@ -11,7 +12,8 @@ export interface AiNotesSettings {
 
 export const DEFAULT_SETTINGS: AiNotesSettings = {
 	recordingsFolder: "recordings",
-	whisperServerUrl: "http://localhost:8080",
+	whisperEndpointUrl: "http://localhost:8080",
+	whisperModel: "whisper-1",
 	llmEndpointUrl: "http://localhost:11434/v1",
 	llmApiKey: "",
 	llmModel: "llama3",
@@ -40,16 +42,32 @@ export class AiNotesSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
+		let whisperModelSetting: Setting;
+
 		new Setting(containerEl)
-			.setName("Whisper server URL")
-			.setDesc("Base URL of the whisper.cpp HTTP server.")
+			.setName("Whisper endpoint URL")
+			.setDesc("whisper.cpp server (e.g. http://{host:port}) or OpenAI-compatible (e.g. http://{host:port}/v1).")
 			.addText(text => text
 				.setPlaceholder("http://localhost:8080")
-				.setValue(this.plugin.settings.whisperServerUrl)
+				.setValue(this.plugin.settings.whisperEndpointUrl)
 				.onChange(async (value) => {
-					this.plugin.settings.whisperServerUrl = value;
+					this.plugin.settings.whisperEndpointUrl = value;
+					await this.plugin.saveSettings();
+					whisperModelSetting.settingEl.toggle(value.includes('/v1'));
+				}));
+
+		whisperModelSetting = new Setting(containerEl)
+			.setName("Whisper model")
+			.setDesc("Model name for OpenAI-compatible endpoints.")
+			.addText(text => text
+				.setPlaceholder("whisper-1")
+				.setValue(this.plugin.settings.whisperModel)
+				.onChange(async (value) => {
+					this.plugin.settings.whisperModel = value;
 					await this.plugin.saveSettings();
 				}));
+
+		whisperModelSetting.settingEl.toggle(this.plugin.settings.whisperEndpointUrl.includes('/v1'));
 
 		new Setting(containerEl)
 			.setName("LLM endpoint URL")
@@ -75,7 +93,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("LLM model")
-			.setDesc("Model name to use for summarization.")
+			.setDesc("Model name to use for enrichment.")
 			.addText(text => text
 				.setPlaceholder("llama3")
 				.setValue(this.plugin.settings.llmModel)

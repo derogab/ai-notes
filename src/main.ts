@@ -197,12 +197,25 @@ export default class AiNotesPlugin extends Plugin {
 		);
 		formData.append("response_format", "json");
 
+		const baseUrl = this.settings.whisperEndpointUrl.replace(/\/+$/, '');
+		const isOpenAI = baseUrl.includes('/v1');
+
+		let url: string;
+		const fetchOptions: RequestInit = {method: "POST", body: formData};
+
+		if (isOpenAI) {
+			url = `${baseUrl}/audio/transcriptions`;
+			formData.append("model", this.settings.whisperModel);
+			if (this.settings.llmApiKey) {
+				fetchOptions.headers = {"Authorization": `Bearer ${this.settings.llmApiKey}`};
+			}
+		} else {
+			url = `${baseUrl}/inference`;
+		}
+
 		let transcription: string;
 		try {
-			const response = await fetch(
-				`${this.settings.whisperServerUrl}/inference`,
-				{method: "POST", body: formData}
-			);
+			const response = await fetch(url, fetchOptions);
 
 			if (!response.ok) {
 				throw new Error(`Server responded with ${response.status}`);
