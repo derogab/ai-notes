@@ -276,7 +276,7 @@ export default class AiNotesPlugin extends Plugin {
 			messages: [
 				{
 					role: "system",
-					content: "Enrich the following note using its content and transcription. Produce a concise, well-structured summary. Reference specific parts of the notes and transcription as sources.",
+					content: "You are given notes and transcriptions. Write a well-structured enriched note covering the key topics and ideas. Your output must be shorter than the combined input — match the density of information, not the volume. Write in the same language as the input.",
 				},
 				{
 					role: "user",
