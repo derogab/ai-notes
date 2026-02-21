@@ -23,7 +23,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		this.addCommand({
 			id: "transcribe",
-			name: "Transcribe recording",
+			name: "Transcribe recordings",
 			callback: () => this.transcribe(),
 		});
 
@@ -235,11 +235,11 @@ export default class AiNotesPlugin extends Plugin {
 	}
 
 	private extractUserNotes(content: string): string {
-		const recordingsIndex = content.indexOf('\n## Recordings\n');
+		const recordingsIndex = content.indexOf('\n## 🔴 REC\n');
 		if (recordingsIndex !== -1) {
 			return content.slice(0, recordingsIndex).trim();
 		}
-		const aiNotesIndex = content.indexOf('\n## AI Notes\n');
+		const aiNotesIndex = content.indexOf('\n## 🤖 AI\n');
 		if (aiNotesIndex !== -1) {
 			return content.slice(0, aiNotesIndex).trim();
 		}
@@ -328,11 +328,11 @@ export default class AiNotesPlugin extends Plugin {
 			'</details>',
 		].join('\n');
 
-		const recordingsHeading = '## Recordings';
+		const recordingsHeading = '## 🔴 REC';
 		const recordingsIndex = content.indexOf(`\n${recordingsHeading}\n`);
 
 		if (recordingsIndex !== -1) {
-			const aiNotesMatch = content.match(/\n## AI Notes\n/);
+			const aiNotesMatch = content.match(/\n## 🤖 AI\n/);
 			if (aiNotesMatch && aiNotesMatch.index !== undefined) {
 				const before = content.slice(0, aiNotesMatch.index).trimEnd();
 				const after = content.slice(aiNotesMatch.index);
@@ -343,7 +343,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		const recordingSection = `${recordingsHeading}\n\n${entry}`;
 
-		const aiNotesMatch = content.match(/\n## AI Notes\n/);
+		const aiNotesMatch = content.match(/\n## 🤖 AI\n/);
 		if (aiNotesMatch && aiNotesMatch.index !== undefined) {
 			const before = content.slice(0, aiNotesMatch.index).trimEnd();
 			const after = content.slice(aiNotesMatch.index).trimStart();
