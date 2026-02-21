@@ -1,12 +1,13 @@
 {
-	"name": "obsidian-plugin-ai-notes",
+	"name": "ai-notes",
 	"version": "0.0.1",
 	"description": "Record audio, transcribe with whisper.cpp, and generate AI summaries in Obsidian",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"license": "MIT",
 	"devDependencies": {
