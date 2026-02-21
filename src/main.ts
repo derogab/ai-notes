@@ -1,6 +1,9 @@
 import {Plugin, Notice, requestUrl, TFile, MarkdownView} from "obsidian";
 import {AiNotesSettings, DEFAULT_SETTINGS, AiNotesSettingTab} from "./settings";
 
+const HEADING_RECORDINGS = '🔴 REC';
+const HEADING_AI = '🤖 AI';
+
 export default class AiNotesPlugin extends Plugin {
 	settings: AiNotesSettings = DEFAULT_SETTINGS;
 	private mediaRecorder: MediaRecorder | null = null;
@@ -235,11 +238,11 @@ export default class AiNotesPlugin extends Plugin {
 	}
 
 	private extractUserNotes(content: string): string {
-		const recordingsIndex = content.indexOf('\n## 🔴 REC\n');
+		const recordingsIndex = content.indexOf(`\n## ${HEADING_RECORDINGS}\n`);
 		if (recordingsIndex !== -1) {
 			return content.slice(0, recordingsIndex).trim();
 		}
-		const aiNotesIndex = content.indexOf('\n## 🤖 AI\n');
+		const aiNotesIndex = content.indexOf(`\n## ${HEADING_AI}\n`);
 		if (aiNotesIndex !== -1) {
 			return content.slice(0, aiNotesIndex).trim();
 		}
@@ -312,7 +315,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		const updatedContent = this.replaceSection(
 			await this.app.vault.read(noteFile),
-			"AI Notes",
+			HEADING_AI,
 			enrichment
 		);
 		await this.app.vault.modify(noteFile, updatedContent);
@@ -328,14 +331,14 @@ export default class AiNotesPlugin extends Plugin {
 			'</details>',
 		].join('\n');
 
-		const recordingsHeading = '## 🔴 REC';
+		const recordingsHeading = `## ${HEADING_RECORDINGS}`;
 		const recordingsIndex = content.indexOf(`\n${recordingsHeading}\n`);
 
 		if (recordingsIndex !== -1) {
-			const aiNotesMatch = content.match(/\n## 🤖 AI\n/);
-			if (aiNotesMatch && aiNotesMatch.index !== undefined) {
-				const before = content.slice(0, aiNotesMatch.index).trimEnd();
-				const after = content.slice(aiNotesMatch.index);
+			const aiIndex = content.indexOf(`\n## ${HEADING_AI}\n`);
+			if (aiIndex !== -1) {
+				const before = content.slice(0, aiIndex).trimEnd();
+				const after = content.slice(aiIndex);
 				return `${before}\n\n${entry}${after}`;
 			}
 			return content.trimEnd() + `\n\n${entry}\n`;
@@ -343,10 +346,10 @@ export default class AiNotesPlugin extends Plugin {
 
 		const recordingSection = `${recordingsHeading}\n\n${entry}`;
 
-		const aiNotesMatch = content.match(/\n## 🤖 AI\n/);
-		if (aiNotesMatch && aiNotesMatch.index !== undefined) {
-			const before = content.slice(0, aiNotesMatch.index).trimEnd();
-			const after = content.slice(aiNotesMatch.index).trimStart();
+		const aiIndex = content.indexOf(`\n## ${HEADING_AI}\n`);
+		if (aiIndex !== -1) {
+			const before = content.slice(0, aiIndex).trimEnd();
+			const after = content.slice(aiIndex).trimStart();
 			return `${before}\n\n${recordingSection}\n\n${after}`;
 		}
 
