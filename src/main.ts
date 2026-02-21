@@ -28,9 +28,9 @@ export default class AiNotesPlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "summarize",
-			name: "Summarize note",
-			callback: () => this.summarize(),
+			id: "enrich",
+			name: "Enrich note",
+			callback: () => this.enrich(),
 		});
 
 		this.addSettingTab(new AiNotesSettingTab(this.app, this));
@@ -113,10 +113,10 @@ export default class AiNotesPlugin extends Plugin {
 	}
 
 	private async saveRecording(blob: Blob) {
-		const folder = this.settings.recordingsFolder;
+		const noteFolder = `${this.settings.recordingsFolder}/${this.recordingNoteName}`;
 
-		if (!(await this.app.vault.adapter.exists(folder))) {
-			await this.app.vault.createFolder(folder);
+		if (!(await this.app.vault.adapter.exists(noteFolder))) {
+			await this.app.vault.createFolder(noteFolder);
 		}
 
 		const timestamp = new Date()
@@ -124,7 +124,7 @@ export default class AiNotesPlugin extends Plugin {
 			.replace(/[:.]/g, "-")
 			.slice(0, 19);
 		const fileName = `${this.recordingNoteName}-${timestamp}.webm`;
-		const filePath = `${folder}/${fileName}`;
+		const filePath = `${noteFolder}/${fileName}`;
 
 		const arrayBuffer = await blob.arrayBuffer();
 		await this.app.vault.createBinary(filePath, arrayBuffer);
@@ -134,11 +134,16 @@ export default class AiNotesPlugin extends Plugin {
 		);
 		if (noteFile) {
 			const content = await this.app.vault.read(noteFile);
-			const embed = `\n![[${filePath}]]\n`;
-			await this.app.vault.modify(noteFile, content + embed);
+			const updatedContent = this.addRecordingToDetailsBlock(content, filePath);
+			await this.app.vault.modify(noteFile, updatedContent);
 		}
 
 		new Notice(`Recording saved: ${fileName}`);
+
+		if (noteFile) {
+			await this.transcribeFile(filePath, noteFile);
+		}
+
 		this.recordingNoteName = null;
 	}
 
@@ -152,18 +157,23 @@ export default class AiNotesPlugin extends Plugin {
 		const content = await this.app.vault.read(noteFile);
 
 		const embedRegex = /!\[\[([^\]]+\.(webm|wav))\]\]/g;
-		let lastMatch: RegExpExecArray | null = null;
+		const audioPaths: string[] = [];
 		let match: RegExpExecArray | null;
 		while ((match = embedRegex.exec(content)) !== null) {
-			lastMatch = match;
+			audioPaths.push(match[1] ?? "");
 		}
 
-		if (!lastMatch) {
+		if (audioPaths.length === 0) {
 			new Notice("No audio embed found in this note.");
 			return;
 		}
 
-		const audioPath = lastMatch[1] ?? "";
+		for (const audioPath of audioPaths) {
+			await this.transcribeFile(audioPath, noteFile);
+		}
+	}
+
+	private async transcribeFile(audioPath: string, noteFile: TFile) {
 		const audioFile = this.app.vault.getAbstractFileByPath(audioPath);
 		if (!audioFile || !(audioFile instanceof TFile)) {
 			new Notice(`Audio file not found: ${audioPath}`);
@@ -173,12 +183,14 @@ export default class AiNotesPlugin extends Plugin {
 		new Notice("Transcribing...");
 
 		const audioData = await this.app.vault.readBinary(audioFile);
+		const wavData = await this.convertToWav(audioData);
 
+		const wavName = audioFile.name.replace(/\.\w+$/, '.wav');
 		const formData = new FormData();
 		formData.append(
 			"file",
-			new Blob([audioData], {type: "audio/webm"}),
-			audioFile.name
+			new Blob([wavData], {type: "audio/wav"}),
+			wavName
 		);
 		formData.append("response_format", "json");
 
@@ -205,32 +217,29 @@ export default class AiNotesPlugin extends Plugin {
 			return;
 		}
 
-		const updatedContent = this.replaceSection(
-			await this.app.vault.read(noteFile),
-			"Transcription",
-			transcription
-		);
+		const currentContent = await this.app.vault.read(noteFile);
+		const updatedContent = this.updateTranscriptionInDetailsBlock(currentContent, audioPath, transcription);
 		await this.app.vault.modify(noteFile, updatedContent);
 		new Notice("Transcription added.");
 	}
 
-	private async summarize() {
+	private async enrich() {
 		const noteFile = this.getActiveNoteFile();
 		if (!noteFile) {
-			new Notice("Open a note to summarize.");
+			new Notice("Open a note to enrich.");
 			return;
 		}
 
 		const content = await this.app.vault.read(noteFile);
 
-		new Notice("Summarizing...");
+		new Notice("Enriching...");
 
 		const body = {
 			model: this.settings.llmModel,
 			messages: [
 				{
 					role: "system",
-					content: "Summarize the following note and its transcription. Be concise. Reference specific parts of the notes and transcription as sources.",
+					content: "Enrich the following note using its content and transcription. Produce a concise, well-structured summary. Reference specific parts of the notes and transcription as sources.",
 				},
 				{
 					role: "user",
@@ -246,7 +255,7 @@ export default class AiNotesPlugin extends Plugin {
 			headers["Authorization"] = `Bearer ${this.settings.llmApiKey}`;
 		}
 
-		let summary: string;
+		let enrichment: string;
 		try {
 			const response = await requestUrl({
 				url: this.settings.llmEndpointUrl,
@@ -256,24 +265,115 @@ export default class AiNotesPlugin extends Plugin {
 			});
 
 			const json = response.json;
-			summary = json.choices?.[0]?.message?.content?.trim() ?? "";
+			enrichment = json.choices?.[0]?.message?.content?.trim() ?? "";
 		} catch (e) {
-			new Notice(`Summary failed: ${e instanceof Error ? e.message : String(e)}`);
+			new Notice(`Enrichment failed: ${e instanceof Error ? e.message : String(e)}`);
 			return;
 		}
 
-		if (!summary) {
-			new Notice("Summary returned empty.");
+		if (!enrichment) {
+			new Notice("Enrichment returned empty.");
 			return;
 		}
 
 		const updatedContent = this.replaceSection(
 			await this.app.vault.read(noteFile),
-			"Summary",
-			summary
+			"Enrichment",
+			enrichment
 		);
 		await this.app.vault.modify(noteFile, updatedContent);
-		new Notice("Summary added.");
+		new Notice("Note enriched.");
+	}
+
+	private addRecordingToDetailsBlock(content: string, audioPath: string): string {
+		const entry = [
+			`![[${audioPath}]]`,
+			'<details>',
+			'<summary>Transcription</summary>',
+			'',
+			'</details>',
+		].join('\n');
+
+		const transcriptionMarker = '<summary>Transcription</summary>';
+		if (content.includes(transcriptionMarker)) {
+			const lastDetailsClose = content.lastIndexOf('</details>');
+			const separatorIndex = content.indexOf('\n---', lastDetailsClose);
+			if (separatorIndex !== -1) {
+				const before = content.slice(0, separatorIndex);
+				const after = content.slice(separatorIndex);
+				return `${before}\n\n${entry}${after}`;
+			}
+		}
+
+		const section = `${entry}\n\n---`;
+
+		const titleMatch = content.match(/^# .+\n/);
+		if (titleMatch) {
+			const insertPos = titleMatch.index! + titleMatch[0].length;
+			const before = content.slice(0, insertPos).trimEnd();
+			const after = content.slice(insertPos).trimStart();
+			return `${before}\n\n${section}\n\n${after}`;
+		}
+
+		return `${section}\n\n${content}`;
+	}
+
+	private async convertToWav(audioData: ArrayBuffer): Promise<ArrayBuffer> {
+		const audioCtx = new AudioContext();
+		const decoded = await audioCtx.decodeAudioData(audioData.slice(0));
+		await audioCtx.close();
+
+		const numChannels = decoded.numberOfChannels;
+		const sampleRate = decoded.sampleRate;
+		const length = decoded.length;
+		const bytesPerSample = 2;
+		const dataSize = length * numChannels * bytesPerSample;
+		const buffer = new ArrayBuffer(44 + dataSize);
+		const view = new DataView(buffer);
+
+		const writeString = (offset: number, str: string) => {
+			for (let i = 0; i < str.length; i++) {
+				view.setUint8(offset + i, str.charCodeAt(i));
+			}
+		};
+
+		writeString(0, 'RIFF');
+		view.setUint32(4, 36 + dataSize, true);
+		writeString(8, 'WAVE');
+		writeString(12, 'fmt ');
+		view.setUint32(16, 16, true);
+		view.setUint16(20, 1, true);
+		view.setUint16(22, numChannels, true);
+		view.setUint32(24, sampleRate, true);
+		view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+		view.setUint16(32, numChannels * bytesPerSample, true);
+		view.setUint16(34, bytesPerSample * 8, true);
+		writeString(36, 'data');
+		view.setUint32(40, dataSize, true);
+
+		const channels: Float32Array[] = [];
+		for (let ch = 0; ch < numChannels; ch++) {
+			channels.push(decoded.getChannelData(ch));
+		}
+
+		let offset = 44;
+		for (let i = 0; i < length; i++) {
+			for (let ch = 0; ch < numChannels; ch++) {
+				const sample = Math.max(-1, Math.min(1, channels[ch]![i]!));
+				view.setInt16(offset, sample * 0x7FFF, true);
+				offset += bytesPerSample;
+			}
+		}
+
+		return buffer;
+	}
+
+	private updateTranscriptionInDetailsBlock(content: string, audioPath: string, transcription: string): string {
+		const escapedPath = audioPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const entryRegex = new RegExp(
+			`(!\\[\\[${escapedPath}\\]\\]\\n<details>\\n<summary>Transcription</summary>\\n)[\\s\\S]*?(\\n</details>)`
+		);
+		return content.replace(entryRegex, `$1\n${transcription}\n$2`);
 	}
 
 	private replaceSection(content: string, heading: string, newBody: string): string {
