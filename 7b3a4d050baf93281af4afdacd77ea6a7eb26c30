@@ -1,0 +1,29 @@
+version-bump.mjs
+  fb949a1525b644a4 1-17
+versions.json
+  fb949a1525b644a4 1-3
+.npmrc
+  fb949a1525b644a4 1
+package.json
+  fb949a1525b644a4 2,9-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "7b3a4d050baf93281af4afdacd77ea6a7eb26c30",
+  "prompts": {
+    "fb949a1525b644a4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a2d3ab46-ed70-44f9-8f8c-f3328e9a984d",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 24,
+      "total_deletions": 2,
+      "accepted_lines": 24,
+      "overriden_lines": 0
+    }
+  }
+}
