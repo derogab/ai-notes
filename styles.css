@@ -1,0 +1,14 @@
+.ai-notes-recording {
+	color: var(--text-error);
+	animation: ai-notes-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes ai-notes-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.4;
+	}
+}
