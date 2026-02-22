@@ -10,6 +10,7 @@ export default class AiNotesPlugin extends Plugin {
 	private recordedChunks: Blob[] = [];
 	private statusBarEl: HTMLElement | null = null;
 	private recordingNotePath: string | null = null;
+	private recordingMimeType: string | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -65,6 +66,20 @@ export default class AiNotesPlugin extends Plugin {
 		}
 	}
 
+	private mimeToExt(mime: string): string {
+		const base = mime.split(';')[0]!.trim();
+		const map: Record<string, string> = {
+			"audio/webm": "webm",
+			"audio/ogg": "ogg",
+			"audio/mp4": "m4a",
+			"audio/mpeg": "mp3",
+			"audio/wav": "wav",
+			"audio/x-wav": "wav",
+			"audio/flac": "flac",
+		};
+		return map[base] ?? "webm";
+	}
+
 	private getActiveNoteFile(): TFile | null {
 		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 		return view?.file ?? null;
@@ -105,7 +120,8 @@ export default class AiNotesPlugin extends Plugin {
 			stream.getTracks().forEach(t => t.stop());
 			this.updateStatusBar(null);
 
-			const blob = new Blob(this.recordedChunks, {type: this.mediaRecorder?.mimeType ?? "audio/webm"});
+			this.recordingMimeType = this.mediaRecorder?.mimeType ?? "audio/webm";
+			const blob = new Blob(this.recordedChunks, {type: this.recordingMimeType});
 			await this.saveRecording(blob);
 			this.mediaRecorder = null;
 			this.recordedChunks = [];
@@ -117,7 +133,11 @@ export default class AiNotesPlugin extends Plugin {
 	}
 
 	private async saveRecording(blob: Blob) {
-		const noteName = this.recordingNotePath!.split('/').pop()!.replace(/\.md$/, '');
+		if (!this.recordingNotePath) {
+			new Notice("Recording failed: no active note.");
+			return;
+		}
+		const noteName = this.recordingNotePath.split('/').pop()?.replace(/\.md$/, '') ?? "recording";
 		const noteFolder = `${this.settings.recordingsFolder}/${noteName}`;
 
 		if (!(await this.app.vault.adapter.exists(noteFolder))) {
@@ -128,13 +148,14 @@ export default class AiNotesPlugin extends Plugin {
 			.toISOString()
 			.replace(/[:.]/g, "-")
 			.slice(0, 19);
-		const fileName = `${noteName}-${timestamp}.webm`;
+		const ext = this.mimeToExt(this.recordingMimeType ?? "audio/webm");
+		const fileName = `${noteName}-${timestamp}.${ext}`;
 		const filePath = `${noteFolder}/${fileName}`;
 
 		const arrayBuffer = await blob.arrayBuffer();
 		await this.app.vault.createBinary(filePath, arrayBuffer);
 
-		const noteFile = this.app.vault.getAbstractFileByPath(this.recordingNotePath!);
+		const noteFile = this.app.vault.getAbstractFileByPath(this.recordingNotePath);
 		if (noteFile && noteFile instanceof TFile) {
 			const content = await this.app.vault.read(noteFile);
 			const updatedContent = this.addRecordingToDetailsBlock(content, filePath);
@@ -144,6 +165,7 @@ export default class AiNotesPlugin extends Plugin {
 		new Notice(`Recording saved: ${fileName}`);
 
 		this.recordingNotePath = null;
+		this.recordingMimeType = null;
 	}
 
 	private async transcribe() {
@@ -168,10 +190,13 @@ export default class AiNotesPlugin extends Plugin {
 		}
 
 		this.updateStatusBar("✍️ Transcribing");
-		for (const audioPath of audioPaths) {
-			await this.transcribeFile(audioPath, noteFile);
+		try {
+			for (const audioPath of audioPaths) {
+				await this.transcribeFile(audioPath, noteFile);
+			}
+		} finally {
+			this.updateStatusBar(null);
 		}
-		this.updateStatusBar(null);
 	}
 
 	private async transcribeFile(audioPath: string, noteFile: TFile) {
@@ -293,58 +318,59 @@ export default class AiNotesPlugin extends Plugin {
 		this.updateStatusBar("🤖 Enriching");
 		new Notice("Enriching...");
 
-		const body = {
-			model: this.settings.llmModel,
-			messages: [
-				{
-					role: "system",
-					content: "You are given notes and transcriptions. Write a well-structured enriched note covering the key topics and ideas. Your output must be shorter than the combined input — match the density of information, not the volume. Write in the same language as the input.",
-				},
-				{
-					role: "user",
-					content: sourceContent,
-				},
-			],
-		};
-
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-		};
-		if (this.settings.llmApiKey) {
-			headers["Authorization"] = `Bearer ${this.settings.llmApiKey}`;
-		}
-
-		let enrichment: string;
 		try {
-			const response = await requestUrl({
-				url: `${this.settings.llmEndpointUrl.replace(/\/+$/, '')}/chat/completions`,
-				method: "POST",
-				headers,
-				body: JSON.stringify(body),
-			});
+			const body = {
+				model: this.settings.llmModel,
+				messages: [
+					{
+						role: "system",
+						content: "You are given notes and transcriptions. Write a well-structured enriched note covering the key topics and ideas. Your output must be shorter than the combined input — match the density of information, not the volume. Write in the same language as the input.",
+					},
+					{
+						role: "user",
+						content: sourceContent,
+					},
+				],
+			};
 
-			const json = response.json;
-			enrichment = json.choices?.[0]?.message?.content?.trim() ?? "";
-		} catch (e) {
+			const headers: Record<string, string> = {
+				"Content-Type": "application/json",
+			};
+			if (this.settings.llmApiKey) {
+				headers["Authorization"] = `Bearer ${this.settings.llmApiKey}`;
+			}
+
+			let enrichment: string;
+			try {
+				const response = await requestUrl({
+					url: `${this.settings.llmEndpointUrl.replace(/\/+$/, '')}/chat/completions`,
+					method: "POST",
+					headers,
+					body: JSON.stringify(body),
+				});
+
+				const json = response.json;
+				enrichment = json.choices?.[0]?.message?.content?.trim() ?? "";
+			} catch (e) {
+				new Notice(`Enrichment failed: ${e instanceof Error ? e.message : String(e)}`);
+				return;
+			}
+
+			if (!enrichment) {
+				new Notice("Enrichment returned empty.");
+				return;
+			}
+
+			const updatedContent = this.replaceSection(
+				await this.app.vault.read(noteFile),
+				HEADING_AI,
+				enrichment
+			);
+			await this.app.vault.modify(noteFile, updatedContent);
+			new Notice("Note enriched.");
+		} finally {
 			this.updateStatusBar(null);
-			new Notice(`Enrichment failed: ${e instanceof Error ? e.message : String(e)}`);
-			return;
 		}
-
-		if (!enrichment) {
-			this.updateStatusBar(null);
-			new Notice("Enrichment returned empty.");
-			return;
-		}
-
-		const updatedContent = this.replaceSection(
-			await this.app.vault.read(noteFile),
-			HEADING_AI,
-			enrichment
-		);
-		await this.app.vault.modify(noteFile, updatedContent);
-		this.updateStatusBar(null);
-		new Notice("Note enriched.");
 	}
 
 	private addRecordingToDetailsBlock(content: string, audioPath: string): string {

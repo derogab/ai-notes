@@ -34,7 +34,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		if (this.saveTimeout) {
 			clearTimeout(this.saveTimeout);
 			this.saveTimeout = null;
-			this.plugin.saveSettings();
+			this.plugin.saveSettings().catch(() => {});
 		}
 	}
 
@@ -42,7 +42,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		if (this.saveTimeout) clearTimeout(this.saveTimeout);
 		this.saveTimeout = setTimeout(() => {
 			this.saveTimeout = null;
-			this.plugin.saveSettings();
+			this.plugin.saveSettings().catch(() => {});
 		}, 500);
 	}
 
