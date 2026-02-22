@@ -1,0 +1,25 @@
+src/main.ts
+  51b9e2410f084572 19,46,57,59-61,64,106,115,170,174,293,329,335,346
+styles.css
+  51b9e2410f084572 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "4cc97e76b38b1d14e67e400c59d7d2549a93ed09",
+  "prompts": {
+    "51b9e2410f084572": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6913c0c7-36b6-4322-9d85-9c20e5abda88",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 16,
+      "total_deletions": 14,
+      "accepted_lines": 16,
+      "overriden_lines": 0
+    }
+  }
+}
