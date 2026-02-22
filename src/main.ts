@@ -16,7 +16,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		this.statusBarEl = this.addStatusBarItem();
 		this.statusBarEl.addClass("ai-notes-status");
-		this.updateStatusBar(false);
+		this.updateStatusBar(null);
 
 		this.addCommand({
 			id: "record",
@@ -43,10 +43,7 @@ export default class AiNotesPlugin extends Plugin {
 		if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
 			this.mediaRecorder.stop();
 		}
-		if (this.statusBarEl) {
-			this.statusBarEl.setText("");
-			this.statusBarEl.removeClass("ai-notes-recording");
-		}
+		this.updateStatusBar(null);
 	}
 
 	async loadSettings() {
@@ -57,14 +54,14 @@ export default class AiNotesPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	private updateStatusBar(recording: boolean) {
+	private updateStatusBar(status: string | null) {
 		if (!this.statusBarEl) return;
-		if (recording) {
-			this.statusBarEl.setText("🔴 Recording");
-			this.statusBarEl.addClass("ai-notes-recording");
+		if (status) {
+			this.statusBarEl.setText(status);
+			this.statusBarEl.addClass("ai-notes-status-active");
 		} else {
 			this.statusBarEl.setText("");
-			this.statusBarEl.removeClass("ai-notes-recording");
+			this.statusBarEl.removeClass("ai-notes-status-active");
 		}
 	}
 
@@ -106,7 +103,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		this.mediaRecorder.onstop = async () => {
 			stream.getTracks().forEach(t => t.stop());
-			this.updateStatusBar(false);
+			this.updateStatusBar(null);
 
 			const blob = new Blob(this.recordedChunks, {type: this.mediaRecorder?.mimeType ?? "audio/webm"});
 			await this.saveRecording(blob);
@@ -115,7 +112,7 @@ export default class AiNotesPlugin extends Plugin {
 		};
 
 		this.mediaRecorder.start();
-		this.updateStatusBar(true);
+		this.updateStatusBar("🔴 Recording");
 		new Notice("Recording started.");
 	}
 
@@ -170,9 +167,11 @@ export default class AiNotesPlugin extends Plugin {
 			return;
 		}
 
+		this.updateStatusBar("✍️ Transcribing");
 		for (const audioPath of audioPaths) {
 			await this.transcribeFile(audioPath, noteFile);
 		}
+		this.updateStatusBar(null);
 	}
 
 	private async transcribeFile(audioPath: string, noteFile: TFile) {
@@ -291,6 +290,7 @@ export default class AiNotesPlugin extends Plugin {
 			sourceContent += '\n\nTranscriptions:\n' + transcriptions.join('\n\n');
 		}
 
+		this.updateStatusBar("🤖 Enriching");
 		new Notice("Enriching...");
 
 		const body = {
@@ -326,11 +326,13 @@ export default class AiNotesPlugin extends Plugin {
 			const json = response.json;
 			enrichment = json.choices?.[0]?.message?.content?.trim() ?? "";
 		} catch (e) {
+			this.updateStatusBar(null);
 			new Notice(`Enrichment failed: ${e instanceof Error ? e.message : String(e)}`);
 			return;
 		}
 
 		if (!enrichment) {
+			this.updateStatusBar(null);
 			new Notice("Enrichment returned empty.");
 			return;
 		}
@@ -341,6 +343,7 @@ export default class AiNotesPlugin extends Plugin {
 			enrichment
 		);
 		await this.app.vault.modify(noteFile, updatedContent);
+		this.updateStatusBar(null);
 		new Notice("Note enriched.");
 	}
 

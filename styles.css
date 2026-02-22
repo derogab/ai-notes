@@ -1,5 +1,4 @@
-.ai-notes-recording {
-	color: var(--text-error);
+.ai-notes-status-active {
 	animation: ai-notes-pulse 1.5s ease-in-out infinite;
 }
 
