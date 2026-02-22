@@ -108,7 +108,7 @@ export default class AiNotesPlugin extends Plugin {
 			stream.getTracks().forEach(t => t.stop());
 			this.updateStatusBar(false);
 
-			const blob = new Blob(this.recordedChunks, {type: "audio/webm"});
+			const blob = new Blob(this.recordedChunks, {type: this.mediaRecorder?.mimeType ?? "audio/webm"});
 			await this.saveRecording(blob);
 			this.mediaRecorder = null;
 			this.recordedChunks = [];
@@ -162,7 +162,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		const content = await this.app.vault.read(noteFile);
 
-		const embedRegex = /!\[\[([^\]]+\.(webm|wav))\]\]/g;
+		const embedRegex = /!\[\[([^\]]+\.(webm|wav|mp3|m4a|ogg|flac))\]\]/g;
 		const audioPaths: string[] = [];
 		let match: RegExpExecArray | null;
 		while ((match = embedRegex.exec(content)) !== null) {
