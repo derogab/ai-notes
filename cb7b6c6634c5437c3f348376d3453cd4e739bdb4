@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.4",
+  "base_commit_sha": "cb7b6c6634c5437c3f348376d3453cd4e739bdb4",
+  "prompts": {
+    "51b9e2410f084572": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6913c0c7-36b6-4322-9d85-9c20e5abda88",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 7,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    }
+  }
+}
