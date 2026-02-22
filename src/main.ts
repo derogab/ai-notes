@@ -146,10 +146,6 @@ export default class AiNotesPlugin extends Plugin {
 
 		new Notice(`Recording saved: ${fileName}`);
 
-		if (noteFile && noteFile instanceof TFile) {
-			await this.transcribeFile(filePath, noteFile);
-		}
-
 		this.recordingNotePath = null;
 	}
 
@@ -284,9 +280,6 @@ export default class AiNotesPlugin extends Plugin {
 			new Notice("Open a note to enrich.");
 			return;
 		}
-
-		// Re-transcribe all recordings first
-		await this.transcribe();
 
 		const content = await this.app.vault.read(noteFile);
 
