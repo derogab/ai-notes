@@ -5,6 +5,7 @@ export interface AiNotesSettings {
 	recordingsFolder: string;
 	whisperEndpointUrl: string;
 	whisperModel: string;
+	whisperApiKey: string;
 	llmEndpointUrl: string;
 	llmApiKey: string;
 	llmModel: string;
@@ -14,6 +15,7 @@ export const DEFAULT_SETTINGS: AiNotesSettings = {
 	recordingsFolder: "recordings",
 	whisperEndpointUrl: "http://localhost:8080",
 	whisperModel: "whisper-1",
+	whisperApiKey: "",
 	llmEndpointUrl: "http://localhost:11434/v1",
 	llmApiKey: "",
 	llmModel: "llama3",
@@ -43,6 +45,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				}));
 
 		let whisperModelSetting: Setting;
+		let whisperApiKeySetting: Setting;
 
 		new Setting(containerEl)
 			.setName("Whisper endpoint URL")
@@ -53,7 +56,9 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.whisperEndpointUrl = value;
 					await this.plugin.saveSettings();
-					whisperModelSetting.settingEl.toggle(value.includes('/v1'));
+					const isOpenAI = value.includes('/v1');
+					whisperModelSetting.settingEl.toggle(isOpenAI);
+					whisperApiKeySetting.settingEl.toggle(isOpenAI);
 				}));
 
 		whisperModelSetting = new Setting(containerEl)
@@ -67,7 +72,22 @@ export class AiNotesSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		whisperModelSetting.settingEl.toggle(this.plugin.settings.whisperEndpointUrl.includes('/v1'));
+		whisperApiKeySetting = new Setting(containerEl)
+			.setName("Whisper API key")
+			.setDesc("Optional API key for the Whisper endpoint (OpenAI-compatible).")
+			.addText(text => {
+				text.inputEl.type = "password";
+				text.setPlaceholder("sk-...")
+					.setValue(this.plugin.settings.whisperApiKey)
+					.onChange(async (value) => {
+						this.plugin.settings.whisperApiKey = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		const isOpenAI = this.plugin.settings.whisperEndpointUrl.includes('/v1');
+		whisperModelSetting.settingEl.toggle(isOpenAI);
+		whisperApiKeySetting.settingEl.toggle(isOpenAI);
 
 		new Setting(containerEl)
 			.setName("LLM endpoint URL")
@@ -83,13 +103,15 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("LLM API key")
 			.setDesc("Optional API key for the LLM endpoint.")
-			.addText(text => text
-				.setPlaceholder("sk-...")
-				.setValue(this.plugin.settings.llmApiKey)
-				.onChange(async (value) => {
-					this.plugin.settings.llmApiKey = value;
-					await this.plugin.saveSettings();
-				}));
+			.addText(text => {
+				text.inputEl.type = "password";
+				text.setPlaceholder("sk-...")
+					.setValue(this.plugin.settings.llmApiKey)
+					.onChange(async (value) => {
+						this.plugin.settings.llmApiKey = value;
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName("LLM model")

@@ -206,8 +206,8 @@ export default class AiNotesPlugin extends Plugin {
 		if (isOpenAI) {
 			url = `${baseUrl}/audio/transcriptions`;
 			formData.append("model", this.settings.whisperModel);
-			if (this.settings.llmApiKey) {
-				fetchOptions.headers = {"Authorization": `Bearer ${this.settings.llmApiKey}`};
+			if (this.settings.whisperApiKey) {
+				fetchOptions.headers = {"Authorization": `Bearer ${this.settings.whisperApiKey}`};
 			}
 		} else {
 			url = `${baseUrl}/inference`;
