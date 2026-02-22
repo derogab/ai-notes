@@ -9,7 +9,7 @@ export default class AiNotesPlugin extends Plugin {
 	private mediaRecorder: MediaRecorder | null = null;
 	private recordedChunks: Blob[] = [];
 	private statusBarEl: HTMLElement | null = null;
-	private recordingNoteName: string | null = null;
+	private recordingNotePath: string | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -42,6 +42,10 @@ export default class AiNotesPlugin extends Plugin {
 	onunload() {
 		if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
 			this.mediaRecorder.stop();
+		}
+		if (this.statusBarEl) {
+			this.statusBarEl.setText("");
+			this.statusBarEl.removeClass("ai-notes-recording");
 		}
 	}
 
@@ -90,7 +94,7 @@ export default class AiNotesPlugin extends Plugin {
 		}
 
 		this.recordedChunks = [];
-		this.recordingNoteName = noteFile.basename;
+		this.recordingNotePath = noteFile.path;
 
 		this.mediaRecorder = new MediaRecorder(stream);
 
@@ -116,7 +120,8 @@ export default class AiNotesPlugin extends Plugin {
 	}
 
 	private async saveRecording(blob: Blob) {
-		const noteFolder = `${this.settings.recordingsFolder}/${this.recordingNoteName}`;
+		const noteName = this.recordingNotePath!.split('/').pop()!.replace(/\.md$/, '');
+		const noteFolder = `${this.settings.recordingsFolder}/${noteName}`;
 
 		if (!(await this.app.vault.adapter.exists(noteFolder))) {
 			await this.app.vault.createFolder(noteFolder);
@@ -126,16 +131,14 @@ export default class AiNotesPlugin extends Plugin {
 			.toISOString()
 			.replace(/[:.]/g, "-")
 			.slice(0, 19);
-		const fileName = `${this.recordingNoteName}-${timestamp}.webm`;
+		const fileName = `${noteName}-${timestamp}.webm`;
 		const filePath = `${noteFolder}/${fileName}`;
 
 		const arrayBuffer = await blob.arrayBuffer();
 		await this.app.vault.createBinary(filePath, arrayBuffer);
 
-		const noteFile = this.app.vault.getFiles().find(
-			f => f.basename === this.recordingNoteName && f.extension === "md"
-		);
-		if (noteFile) {
+		const noteFile = this.app.vault.getAbstractFileByPath(this.recordingNotePath!);
+		if (noteFile && noteFile instanceof TFile) {
 			const content = await this.app.vault.read(noteFile);
 			const updatedContent = this.addRecordingToDetailsBlock(content, filePath);
 			await this.app.vault.modify(noteFile, updatedContent);
@@ -143,11 +146,11 @@ export default class AiNotesPlugin extends Plugin {
 
 		new Notice(`Recording saved: ${fileName}`);
 
-		if (noteFile) {
+		if (noteFile && noteFile instanceof TFile) {
 			await this.transcribeFile(filePath, noteFile);
 		}
 
-		this.recordingNoteName = null;
+		this.recordingNotePath = null;
 	}
 
 	private async transcribe() {
@@ -186,7 +189,13 @@ export default class AiNotesPlugin extends Plugin {
 		new Notice("Transcribing...");
 
 		const audioData = await this.app.vault.readBinary(audioFile);
-		const wavData = await this.convertToWav(audioData);
+		let wavData: ArrayBuffer;
+		try {
+			wavData = await this.convertToWav(audioData);
+		} catch (e) {
+			new Notice(`Audio conversion failed: ${e instanceof Error ? e.message : String(e)}`);
+			return;
+		}
 
 		const wavName = audioFile.name.replace(/\.\w+$/, '.wav');
 		const formData = new FormData();
@@ -251,14 +260,21 @@ export default class AiNotesPlugin extends Plugin {
 	}
 
 	private extractUserNotes(content: string): string {
-		const recordingsIndex = content.indexOf(`\n## ${HEADING_RECORDINGS}\n`);
+		const recHeading = `## ${HEADING_RECORDINGS}\n`;
+		const aiHeading = `## ${HEADING_AI}\n`;
+
+		let recordingsIndex = content.indexOf(`\n${recHeading}`);
+		if (recordingsIndex === -1 && content.startsWith(recHeading)) recordingsIndex = 0;
 		if (recordingsIndex !== -1) {
 			return content.slice(0, recordingsIndex).trim();
 		}
-		const aiNotesIndex = content.indexOf(`\n## ${HEADING_AI}\n`);
+
+		let aiNotesIndex = content.indexOf(`\n${aiHeading}`);
+		if (aiNotesIndex === -1 && content.startsWith(aiHeading)) aiNotesIndex = 0;
 		if (aiNotesIndex !== -1) {
 			return content.slice(0, aiNotesIndex).trim();
 		}
+
 		return content.trim();
 	}
 

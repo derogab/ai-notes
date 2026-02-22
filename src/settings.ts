@@ -23,10 +23,27 @@ export const DEFAULT_SETTINGS: AiNotesSettings = {
 
 export class AiNotesSettingTab extends PluginSettingTab {
 	plugin: AiNotesPlugin;
+	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(app: App, plugin: AiNotesPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	hide(): void {
+		if (this.saveTimeout) {
+			clearTimeout(this.saveTimeout);
+			this.saveTimeout = null;
+			this.plugin.saveSettings();
+		}
+	}
+
+	private debouncedSave() {
+		if (this.saveTimeout) clearTimeout(this.saveTimeout);
+		this.saveTimeout = setTimeout(() => {
+			this.saveTimeout = null;
+			this.plugin.saveSettings();
+		}, 500);
 	}
 
 	display(): void {
@@ -41,7 +58,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.recordingsFolder)
 				.onChange(async (value) => {
 					this.plugin.settings.recordingsFolder = value;
-					await this.plugin.saveSettings();
+					this.debouncedSave();
 				}));
 
 		let whisperModelSetting: Setting;
@@ -55,7 +72,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.whisperEndpointUrl)
 				.onChange(async (value) => {
 					this.plugin.settings.whisperEndpointUrl = value;
-					await this.plugin.saveSettings();
+					this.debouncedSave();
 					const isOpenAI = value.includes('/v1');
 					whisperModelSetting.settingEl.toggle(isOpenAI);
 					whisperApiKeySetting.settingEl.toggle(isOpenAI);
@@ -69,7 +86,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.whisperModel)
 				.onChange(async (value) => {
 					this.plugin.settings.whisperModel = value;
-					await this.plugin.saveSettings();
+					this.debouncedSave();
 				}));
 
 		whisperApiKeySetting = new Setting(containerEl)
@@ -81,7 +98,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.whisperApiKey)
 					.onChange(async (value) => {
 						this.plugin.settings.whisperApiKey = value;
-						await this.plugin.saveSettings();
+						this.debouncedSave();
 					});
 			});
 
@@ -97,7 +114,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.llmEndpointUrl)
 				.onChange(async (value) => {
 					this.plugin.settings.llmEndpointUrl = value;
-					await this.plugin.saveSettings();
+					this.debouncedSave();
 				}));
 
 		new Setting(containerEl)
@@ -109,7 +126,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.llmApiKey)
 					.onChange(async (value) => {
 						this.plugin.settings.llmApiKey = value;
-						await this.plugin.saveSettings();
+						this.debouncedSave();
 					});
 			});
 
@@ -121,7 +138,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.llmModel)
 				.onChange(async (value) => {
 					this.plugin.settings.llmModel = value;
-					await this.plugin.saveSettings();
+					this.debouncedSave();
 				}));
 	}
 }
