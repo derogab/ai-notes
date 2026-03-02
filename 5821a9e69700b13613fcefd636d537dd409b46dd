@@ -1,0 +1,37 @@
+README.md
+  ca8f5929ed9e4fdb 2-3,5,8-75,77-99,101,110
+  9eca6225871611f5 76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.7",
+  "base_commit_sha": "5821a9e69700b13613fcefd636d537dd409b46dd",
+  "prompts": {
+    "9eca6225871611f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4035e8e7-8ba1-4061-b9b1-321df8633eec",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    },
+    "ca8f5929ed9e4fdb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2ffe9d5d-ca46-45a0-b67a-b91ce1f0ae40",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 106,
+      "total_deletions": 0,
+      "accepted_lines": 96,
+      "overriden_lines": 3
+    }
+  }
+}
