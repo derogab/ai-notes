@@ -1,0 +1,25 @@
+package.json
+  9eca6225871611f5 12
+README.md
+  9eca6225871611f5 96-106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.7",
+  "base_commit_sha": "eba4ec5db8bf510b8b3fbe6c69b966fe7825a2fd",
+  "prompts": {
+    "9eca6225871611f5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4035e8e7-8ba1-4061-b9b1-321df8633eec",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 25,
+      "total_deletions": 14,
+      "accepted_lines": 12,
+      "overriden_lines": 0
+    }
+  }
+}
