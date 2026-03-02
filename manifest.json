@@ -1,7 +1,7 @@
 {
 	"id": "ai-notes",
 	"name": "AI Notes",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
 	"description": "Record audio, transcribe it, and enrich your written notes with AI-powered insights.",
 	"author": "derogab",
