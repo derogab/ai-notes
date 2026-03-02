@@ -93,6 +93,17 @@ Transcribed text...
 AI-generated enrichment...
 ```
 
+## Privacy First
+
+This plugin does **not** connect to any external service out of the box. All endpoints are **user-configured** — nothing is sent anywhere until you explicitly set up and point the plugin to your own services.
+
+> **Works great with local AI!** Use [llama.cpp](https://github.com/ggml-org/llama.cpp), [LM Studio](https://lmstudio.ai/), [Ollama](https://github.com/ollama/ollama), [whisper.cpp](https://github.com/ggerganov/whisper.cpp) — or any OpenAI-compatible endpoint — to keep your data entirely on your machine.
+
+- **Transcription**: Audio recordings are sent to the Whisper-compatible endpoint you configure.
+- **Enrichment**: Note content and transcriptions are sent to the LLM endpoint you configure.
+
+You are in full control of where your data goes.
+
 ## Credits
 
 _AI Notes_ is made with ♥ by [derogab](https://github.com/derogab) and it's released under the [GPL-3.0 license](./LICENSE).
