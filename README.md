@@ -95,7 +95,7 @@ AI-generated enrichment...
 
 ## Credits
 
-_AI Notes_ is made with ♥ by [derogab](https://github.com/derogab).
+_AI Notes_ is made with ♥ by [derogab](https://github.com/derogab) and it's released under the [GPL-3.0 license](./LICENSE).
 
 ### Contributors
 
