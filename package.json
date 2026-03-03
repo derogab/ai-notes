@@ -1,6 +1,6 @@
 {
 	"name": "ai-notes",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Record audio, transcribe it, and enrich your written notes with AI-powered insights.",
 	"main": "main.js",
 	"type": "module",
