@@ -1,0 +1,36 @@
+package.json
+  f1b86b34d4ffda6e 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.8",
+  "base_commit_sha": "c65fa5f12f05b7707623863c4588adf33d8a2e86",
+  "prompts": {
+    "eb9a8e2876e0b7fb": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0b2c4f62-436e-40b0-bf5d-170ed0838490",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 30,
+      "total_deletions": 6,
+      "accepted_lines": 24,
+      "overriden_lines": 0
+    },
+    "f1b86b34d4ffda6e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "93bc2b31-3886-45e4-8dbb-64d4fcc4ca47",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "Gabriele De Rosa <derosagabriele@outlook.it>",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
