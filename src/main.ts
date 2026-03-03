@@ -21,7 +21,7 @@ export default class AiNotesPlugin extends Plugin {
 
 		this.addCommand({
 			id: "record",
-			name: "Start/Stop recording",
+			name: "Start/stop recording",
 			callback: () => this.toggleRecording(),
 		});
 
@@ -100,7 +100,7 @@ export default class AiNotesPlugin extends Plugin {
 		let stream: MediaStream;
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({audio: true});
-		} catch (e) {
+		} catch {
 			new Notice("Microphone access denied.");
 			return;
 		}
@@ -218,39 +218,31 @@ export default class AiNotesPlugin extends Plugin {
 		}
 
 		const wavName = audioFile.name.replace(/\.\w+$/, '.wav');
-		const formData = new FormData();
-		formData.append(
-			"file",
-			new Blob([wavData], {type: "audio/wav"}),
-			wavName
-		);
-		formData.append("response_format", "json");
 
 		const baseUrl = this.settings.whisperEndpointUrl.replace(/\/+$/, '');
 		const isOpenAI = baseUrl.includes('/v1');
 
+		const fields: Record<string, string> = {response_format: "json"};
 		let url: string;
-		const fetchOptions: RequestInit = {method: "POST", body: formData};
+		const headers: Record<string, string> = {};
 
 		if (isOpenAI) {
 			url = `${baseUrl}/audio/transcriptions`;
-			formData.append("model", this.settings.whisperModel);
+			fields["model"] = this.settings.whisperModel;
 			if (this.settings.whisperApiKey) {
-				fetchOptions.headers = {"Authorization": `Bearer ${this.settings.whisperApiKey}`};
+				headers["Authorization"] = `Bearer ${this.settings.whisperApiKey}`;
 			}
 		} else {
 			url = `${baseUrl}/inference`;
 		}
 
+		const {body, contentType} = this.buildMultipartBody(fields, "file", wavData, wavName, "audio/wav");
+		headers["Content-Type"] = contentType;
+
 		let transcription: string;
 		try {
-			const response = await fetch(url, fetchOptions);
-
-			if (!response.ok) {
-				throw new Error(`Server responded with ${response.status}`);
-			}
-
-			const json = await response.json();
+			const response = await requestUrl({url, method: "POST", headers, body});
+			const json = response.json as {text?: string};
 			transcription = json.text?.trim() ?? "";
 		} catch (e) {
 			new Notice(`Transcription failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -405,6 +397,41 @@ export default class AiNotesPlugin extends Plugin {
 		}
 
 		return content.trimEnd() + `\n\n${recordingSection}\n`;
+	}
+
+	private buildMultipartBody(
+		fields: Record<string, string>,
+		fileField: string,
+		fileData: ArrayBuffer,
+		fileName: string,
+		fileMimeType: string
+	): {body: ArrayBuffer; contentType: string} {
+		const boundary = "----ObsidianBoundary" + Date.now().toString(36);
+		const enc = new TextEncoder();
+		const parts: Uint8Array[] = [];
+
+		for (const [key, value] of Object.entries(fields)) {
+			parts.push(enc.encode(
+				`--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${value}\r\n`
+			));
+		}
+
+		parts.push(enc.encode(
+			`--${boundary}\r\nContent-Disposition: form-data; name="${fileField}"; filename="${fileName}"\r\nContent-Type: ${fileMimeType}\r\n\r\n`
+		));
+		parts.push(new Uint8Array(fileData));
+		parts.push(enc.encode(`\r\n--${boundary}--\r\n`));
+
+		let totalLength = 0;
+		for (const part of parts) totalLength += part.length;
+		const body = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const part of parts) {
+			body.set(part, offset);
+			offset += part.length;
+		}
+
+		return {body: body.buffer, contentType: `multipart/form-data; boundary=${boundary}`};
 	}
 
 	private async convertToWav(audioData: ArrayBuffer): Promise<ArrayBuffer> {
