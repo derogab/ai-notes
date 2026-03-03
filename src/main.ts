@@ -341,7 +341,7 @@ export default class AiNotesPlugin extends Plugin {
 					body: JSON.stringify(body),
 				});
 
-				const json = response.json;
+				const json = response.json as { choices?: { message?: { content?: string } }[] };
 				enrichment = json.choices?.[0]?.message?.content?.trim() ?? "";
 			} catch (e) {
 				new Notice(`Enrichment failed: ${e instanceof Error ? e.message : String(e)}`);
