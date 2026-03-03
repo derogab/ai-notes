@@ -21,6 +21,8 @@ export const DEFAULT_SETTINGS: AiNotesSettings = {
 	llmModel: "llama3",
 };
 
+const API_KEY_PLACEHOLDER = "sk-...";
+
 export class AiNotesSettingTab extends PluginSettingTab {
 	plugin: AiNotesPlugin;
 	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -54,8 +56,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 			.setName("Recordings folder")
 			.setDesc("Vault folder where audio recordings are saved.")
 			.addText(text => text
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				.setPlaceholder("recordings")
+				.setPlaceholder(DEFAULT_SETTINGS.recordingsFolder)
 				.setValue(this.plugin.settings.recordingsFolder)
 				.onChange((value) => {
 					this.plugin.settings.recordingsFolder = value;
@@ -69,8 +70,7 @@ export class AiNotesSettingTab extends PluginSettingTab {
 			.setName("Whisper endpoint URL")
 			.setDesc("whisper.cpp server (e.g. http://{host:port}) or OpenAI-compatible (e.g. http://{host:port}/v1).")
 			.addText(text => text
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				.setPlaceholder("http://localhost:8080")
+				.setPlaceholder(DEFAULT_SETTINGS.whisperEndpointUrl)
 				.setValue(this.plugin.settings.whisperEndpointUrl)
 				.onChange((value) => {
 					this.plugin.settings.whisperEndpointUrl = value;
@@ -82,11 +82,9 @@ export class AiNotesSettingTab extends PluginSettingTab {
 
 		whisperModelSetting = new Setting(containerEl)
 			.setName("Whisper model")
-			// eslint-disable-next-line obsidianmd/ui/sentence-case
-			.setDesc("Model name for OpenAI-compatible endpoints.")
+			.setDesc("Model identifier for the transcription endpoint.")
 			.addText(text => text
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				.setPlaceholder("whisper-1")
+				.setPlaceholder(DEFAULT_SETTINGS.whisperModel)
 				.setValue(this.plugin.settings.whisperModel)
 				.onChange((value) => {
 					this.plugin.settings.whisperModel = value;
@@ -95,12 +93,10 @@ export class AiNotesSettingTab extends PluginSettingTab {
 
 		whisperApiKeySetting = new Setting(containerEl)
 			.setName("Whisper API key")
-			// eslint-disable-next-line obsidianmd/ui/sentence-case
-			.setDesc("Optional API key for the Whisper endpoint (OpenAI-compatible).")
+			.setDesc("Optional bearer token for the transcription endpoint.")
 			.addText(text => {
 				text.inputEl.type = "password";
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				text.setPlaceholder("sk-...")
+				text.setPlaceholder(API_KEY_PLACEHOLDER)
 					.setValue(this.plugin.settings.whisperApiKey)
 					.onChange((value) => {
 						this.plugin.settings.whisperApiKey = value;
@@ -113,12 +109,10 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		whisperApiKeySetting.settingEl.toggle(isOpenAI);
 
 		new Setting(containerEl)
-			// eslint-disable-next-line obsidianmd/ui/sentence-case
-			.setName("LLM endpoint URL")
-			.setDesc("OpenAI-compatible API base URL (e.g. http://{host:port}/v1).")
+			.setName("Enrichment endpoint URL")
+			.setDesc("Chat completions API base URL (e.g. http://{host:port}/v1).")
 			.addText(text => text
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				.setPlaceholder("http://localhost:11434/v1")
+				.setPlaceholder(DEFAULT_SETTINGS.llmEndpointUrl)
 				.setValue(this.plugin.settings.llmEndpointUrl)
 				.onChange((value) => {
 					this.plugin.settings.llmEndpointUrl = value;
@@ -126,14 +120,11 @@ export class AiNotesSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			// eslint-disable-next-line obsidianmd/ui/sentence-case
-			.setName("LLM API key")
-			// eslint-disable-next-line obsidianmd/ui/sentence-case
-			.setDesc("Optional API key for the LLM endpoint.")
+			.setName("Enrichment API key")
+			.setDesc("Optional bearer token for the enrichment endpoint.")
 			.addText(text => {
 				text.inputEl.type = "password";
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				text.setPlaceholder("sk-...")
+				text.setPlaceholder(API_KEY_PLACEHOLDER)
 					.setValue(this.plugin.settings.llmApiKey)
 					.onChange((value) => {
 						this.plugin.settings.llmApiKey = value;
@@ -142,12 +133,10 @@ export class AiNotesSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			// eslint-disable-next-line obsidianmd/ui/sentence-case
-			.setName("LLM model")
-			.setDesc("Model name to use for enrichment.")
+			.setName("Enrichment model")
+			.setDesc("Model identifier for the enrichment endpoint.")
 			.addText(text => text
-				// eslint-disable-next-line obsidianmd/ui/sentence-case
-				.setPlaceholder("llama3")
+				.setPlaceholder(DEFAULT_SETTINGS.llmModel)
 				.setValue(this.plugin.settings.llmModel)
 				.onChange((value) => {
 					this.plugin.settings.llmModel = value;
