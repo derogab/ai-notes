@@ -6,9 +6,11 @@ export interface AiNotesSettings {
 	whisperEndpointUrl: string;
 	whisperModel: string;
 	whisperApiKey: string;
+	whisperHeaders: string;
 	llmEndpointUrl: string;
 	llmApiKey: string;
 	llmModel: string;
+	llmHeaders: string;
 }
 
 export const DEFAULT_SETTINGS: AiNotesSettings = {
@@ -16,9 +18,11 @@ export const DEFAULT_SETTINGS: AiNotesSettings = {
 	whisperEndpointUrl: "http://localhost:8080",
 	whisperModel: "whisper-1",
 	whisperApiKey: "",
+	whisperHeaders: "",
 	llmEndpointUrl: "http://localhost:11434/v1",
 	llmApiKey: "",
 	llmModel: "llama3",
+	llmHeaders: "",
 };
 
 const API_KEY_PLACEHOLDER = "sk-...";
@@ -109,6 +113,17 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		whisperApiKeySetting.settingEl.toggle(isOpenAI);
 
 		new Setting(containerEl)
+			.setName("Whisper headers")
+			.setDesc("Optional extra HTTP headers for the transcription endpoint, one per line (name: value).")
+			.addTextArea(text => text
+				.setPlaceholder("X-Custom-Header: value")
+				.setValue(this.plugin.settings.whisperHeaders)
+				.onChange((value) => {
+					this.plugin.settings.whisperHeaders = value;
+					this.debouncedSave();
+				}));
+
+		new Setting(containerEl)
 			.setName("Enrichment endpoint URL")
 			.setDesc("Chat completions API base URL (e.g. http://{host:port}/v1).")
 			.addText(text => text
@@ -131,6 +146,17 @@ export class AiNotesSettingTab extends PluginSettingTab {
 						this.debouncedSave();
 					});
 			});
+
+		new Setting(containerEl)
+			.setName("Enrichment headers")
+			.setDesc("Optional extra HTTP headers for the enrichment endpoint, one per line (name: value).")
+			.addTextArea(text => text
+				.setPlaceholder("X-Custom-Header: value")
+				.setValue(this.plugin.settings.llmHeaders)
+				.onChange((value) => {
+					this.plugin.settings.llmHeaders = value;
+					this.debouncedSave();
+				}));
 
 		new Setting(containerEl)
 			.setName("Enrichment model")
