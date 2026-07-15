@@ -85,11 +85,18 @@ export default class AiNotesPlugin extends Plugin {
 		return view?.file ?? null;
 	}
 
+	private setHeader(headers: Record<string, string>, name: string, value: string) {
+		for (const key of Object.keys(headers)) {
+			if (key.toLowerCase() === name.toLowerCase()) delete headers[key];
+		}
+		headers[name] = value;
+	}
+
 	private applyCustomHeaders(headers: Record<string, string>, raw: string) {
 		for (const line of raw.split('\n')) {
 			const sep = line.indexOf(':');
 			if (sep > 0) {
-				headers[line.slice(0, sep).trim()] = line.slice(sep + 1).trim();
+				this.setHeader(headers, line.slice(0, sep).trim(), line.slice(sep + 1).trim());
 			}
 		}
 	}
@@ -247,7 +254,7 @@ export default class AiNotesPlugin extends Plugin {
 		this.applyCustomHeaders(headers, this.settings.whisperHeaders);
 
 		const {body, contentType} = this.buildMultipartBody(fields, "file", wavData, wavName, "audio/wav");
-		headers["Content-Type"] = contentType;
+		this.setHeader(headers, "Content-Type", contentType);
 
 		let transcription: string;
 		try {
