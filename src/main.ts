@@ -331,6 +331,12 @@ export default class AiNotesPlugin extends Plugin {
 			if (this.settings.llmApiKey) {
 				headers["Authorization"] = `Bearer ${this.settings.llmApiKey}`;
 			}
+			for (const line of this.settings.llmHeaders.split('\n')) {
+				const sep = line.indexOf(':');
+				if (sep > 0) {
+					headers[line.slice(0, sep).trim()] = line.slice(sep + 1).trim();
+				}
+			}
 
 			let enrichment: string;
 			try {

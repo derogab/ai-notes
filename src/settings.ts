@@ -9,6 +9,7 @@ export interface AiNotesSettings {
 	llmEndpointUrl: string;
 	llmApiKey: string;
 	llmModel: string;
+	llmHeaders: string;
 }
 
 export const DEFAULT_SETTINGS: AiNotesSettings = {
@@ -19,6 +20,7 @@ export const DEFAULT_SETTINGS: AiNotesSettings = {
 	llmEndpointUrl: "http://localhost:11434/v1",
 	llmApiKey: "",
 	llmModel: "llama3",
+	llmHeaders: "",
 };
 
 const API_KEY_PLACEHOLDER = "sk-...";
@@ -131,6 +133,17 @@ export class AiNotesSettingTab extends PluginSettingTab {
 						this.debouncedSave();
 					});
 			});
+
+		new Setting(containerEl)
+			.setName("Enrichment headers")
+			.setDesc("Optional extra HTTP headers for the enrichment endpoint, one per line (name: value).")
+			.addTextArea(text => text
+				.setPlaceholder("X-Custom-Header: value")
+				.setValue(this.plugin.settings.llmHeaders)
+				.onChange((value) => {
+					this.plugin.settings.llmHeaders = value;
+					this.debouncedSave();
+				}));
 
 		new Setting(containerEl)
 			.setName("Enrichment model")
