@@ -85,6 +85,15 @@ export default class AiNotesPlugin extends Plugin {
 		return view?.file ?? null;
 	}
 
+	private applyCustomHeaders(headers: Record<string, string>, raw: string) {
+		for (const line of raw.split('\n')) {
+			const sep = line.indexOf(':');
+			if (sep > 0) {
+				headers[line.slice(0, sep).trim()] = line.slice(sep + 1).trim();
+			}
+		}
+	}
+
 	private async toggleRecording() {
 		if (this.mediaRecorder && this.mediaRecorder.state === "recording") {
 			this.mediaRecorder.stop();
@@ -235,6 +244,7 @@ export default class AiNotesPlugin extends Plugin {
 		} else {
 			url = `${baseUrl}/inference`;
 		}
+		this.applyCustomHeaders(headers, this.settings.whisperHeaders);
 
 		const {body, contentType} = this.buildMultipartBody(fields, "file", wavData, wavName, "audio/wav");
 		headers["Content-Type"] = contentType;
@@ -331,12 +341,7 @@ export default class AiNotesPlugin extends Plugin {
 			if (this.settings.llmApiKey) {
 				headers["Authorization"] = `Bearer ${this.settings.llmApiKey}`;
 			}
-			for (const line of this.settings.llmHeaders.split('\n')) {
-				const sep = line.indexOf(':');
-				if (sep > 0) {
-					headers[line.slice(0, sep).trim()] = line.slice(sep + 1).trim();
-				}
-			}
+			this.applyCustomHeaders(headers, this.settings.llmHeaders);
 
 			let enrichment: string;
 			try {

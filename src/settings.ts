@@ -6,6 +6,7 @@ export interface AiNotesSettings {
 	whisperEndpointUrl: string;
 	whisperModel: string;
 	whisperApiKey: string;
+	whisperHeaders: string;
 	llmEndpointUrl: string;
 	llmApiKey: string;
 	llmModel: string;
@@ -17,6 +18,7 @@ export const DEFAULT_SETTINGS: AiNotesSettings = {
 	whisperEndpointUrl: "http://localhost:8080",
 	whisperModel: "whisper-1",
 	whisperApiKey: "",
+	whisperHeaders: "",
 	llmEndpointUrl: "http://localhost:11434/v1",
 	llmApiKey: "",
 	llmModel: "llama3",
@@ -109,6 +111,17 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		const isOpenAI = this.plugin.settings.whisperEndpointUrl.includes('/v1');
 		whisperModelSetting.settingEl.toggle(isOpenAI);
 		whisperApiKeySetting.settingEl.toggle(isOpenAI);
+
+		new Setting(containerEl)
+			.setName("Whisper headers")
+			.setDesc("Optional extra HTTP headers for the transcription endpoint, one per line (name: value).")
+			.addTextArea(text => text
+				.setPlaceholder("X-Custom-Header: value")
+				.setValue(this.plugin.settings.whisperHeaders)
+				.onChange((value) => {
+					this.plugin.settings.whisperHeaders = value;
+					this.debouncedSave();
+				}));
 
 		new Setting(containerEl)
 			.setName("Enrichment endpoint URL")
