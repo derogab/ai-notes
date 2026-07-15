@@ -96,7 +96,10 @@ export default class AiNotesPlugin extends Plugin {
 		for (const line of raw.split('\n')) {
 			const sep = line.indexOf(':');
 			if (sep > 0) {
-				this.setHeader(headers, line.slice(0, sep).trim(), line.slice(sep + 1).trim());
+				const name = line.slice(0, sep).trim();
+				if (name) {
+					this.setHeader(headers, name, line.slice(sep + 1).trim());
+				}
 			}
 		}
 	}
