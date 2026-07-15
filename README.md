@@ -52,6 +52,7 @@ Open **Settings** → **AI Notes** to configure the plugin.
 | `Whisper endpoint URL` | whisper.cpp server (`http://host:port`) or OpenAI-compatible (`http://host:port/v1`) | `http://localhost:8080` |
 | `Whisper model` | Model name (only for OpenAI-compatible endpoints) | `whisper-1` |
 | `Whisper API key` | Optional API key (only for OpenAI-compatible endpoints) | — |
+| `Whisper headers` | Optional extra HTTP headers, one per line (`Name: Value`) | — |
 
 ### Enrichment (LLM)
 
@@ -60,6 +61,7 @@ Open **Settings** → **AI Notes** to configure the plugin.
 | `LLM endpoint URL` | OpenAI-compatible API base URL | `http://localhost:11434/v1` |
 | `LLM API key` | Optional API key for the endpoint | — |
 | `LLM model` | Model name to use for enrichment | `llama3` |
+| `Enrichment headers` | Optional extra HTTP headers, one per line (`Name: Value`) | — |
 
 ## Usage
 
