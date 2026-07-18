@@ -35,6 +35,11 @@ export class AiNotesSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		await super.setControlValue(key, value);
+		if (key === "whisperEndpointUrl") this.refreshDomState();
+	}
+
 	getSettingDefinitions(): SettingDefinitionItem<keyof AiNotesSettings>[] {
 		const isOpenAI = () => this.plugin.settings.whisperEndpointUrl.includes('/v1');
 
