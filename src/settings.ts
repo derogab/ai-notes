@@ -1,4 +1,4 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, PluginSettingTab, type SettingDefinitionItem} from "obsidian";
 import AiNotesPlugin from "./main";
 
 export interface AiNotesSettings {
@@ -29,144 +29,123 @@ const API_KEY_PLACEHOLDER = "sk-...";
 
 export class AiNotesSettingTab extends PluginSettingTab {
 	plugin: AiNotesPlugin;
-	private saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(app: App, plugin: AiNotesPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
-	hide(): void {
-		if (this.saveTimeout) {
-			clearTimeout(this.saveTimeout);
-			this.saveTimeout = null;
-			this.plugin.saveSettings().catch(() => {});
-		}
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		await super.setControlValue(key, value);
+		if (key === "whisperEndpointUrl") this.refreshDomState();
 	}
 
-	private debouncedSave() {
-		if (this.saveTimeout) clearTimeout(this.saveTimeout);
-		this.saveTimeout = setTimeout(() => {
-			this.saveTimeout = null;
-			this.plugin.saveSettings().catch(() => {});
-		}, 500);
-	}
+	getSettingDefinitions(): SettingDefinitionItem<keyof AiNotesSettings>[] {
+		const isOpenAI = () => this.plugin.settings.whisperEndpointUrl.includes('/v1');
 
-	display(): void {
-		const {containerEl} = this;
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName("Recordings folder")
-			.setDesc("Vault folder where audio recordings are saved.")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.recordingsFolder)
-				.setValue(this.plugin.settings.recordingsFolder)
-				.onChange((value) => {
-					this.plugin.settings.recordingsFolder = value;
-					this.debouncedSave();
-				}));
-
-		let whisperModelSetting: Setting;
-		let whisperApiKeySetting: Setting;
-
-		new Setting(containerEl)
-			.setName("Whisper endpoint URL")
-			.setDesc("whisper.cpp server (e.g. http://{host:port}) or OpenAI-compatible (e.g. http://{host:port}/v1).")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.whisperEndpointUrl)
-				.setValue(this.plugin.settings.whisperEndpointUrl)
-				.onChange((value) => {
-					this.plugin.settings.whisperEndpointUrl = value;
-					this.debouncedSave();
-					const isOpenAI = value.includes('/v1');
-					whisperModelSetting.settingEl.toggle(isOpenAI);
-					whisperApiKeySetting.settingEl.toggle(isOpenAI);
-				}));
-
-		whisperModelSetting = new Setting(containerEl)
-			.setName("Whisper model")
-			.setDesc("Model identifier for the transcription endpoint.")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.whisperModel)
-				.setValue(this.plugin.settings.whisperModel)
-				.onChange((value) => {
-					this.plugin.settings.whisperModel = value;
-					this.debouncedSave();
-				}));
-
-		whisperApiKeySetting = new Setting(containerEl)
-			.setName("Whisper API key")
-			.setDesc("Optional bearer token for the transcription endpoint.")
-			.addText(text => {
-				text.inputEl.type = "password";
-				text.setPlaceholder(API_KEY_PLACEHOLDER)
-					.setValue(this.plugin.settings.whisperApiKey)
-					.onChange((value) => {
-						this.plugin.settings.whisperApiKey = value;
-						this.debouncedSave();
+		return [
+			{
+				name: "Recordings folder",
+				desc: "Vault folder where audio recordings are saved.",
+				control: {
+					type: "text",
+					key: "recordingsFolder",
+					defaultValue: DEFAULT_SETTINGS.recordingsFolder,
+					placeholder: DEFAULT_SETTINGS.recordingsFolder,
+				},
+			},
+			{
+				name: "Whisper endpoint URL",
+				desc: "whisper.cpp server (e.g. http://{host:port}) or OpenAI-compatible (e.g. http://{host:port}/v1).",
+				control: {
+					type: "text",
+					key: "whisperEndpointUrl",
+					defaultValue: DEFAULT_SETTINGS.whisperEndpointUrl,
+					placeholder: DEFAULT_SETTINGS.whisperEndpointUrl,
+				},
+			},
+			{
+				name: "Whisper model",
+				desc: "Model identifier for the transcription endpoint.",
+				visible: isOpenAI,
+				control: {
+					type: "text",
+					key: "whisperModel",
+					defaultValue: DEFAULT_SETTINGS.whisperModel,
+					placeholder: DEFAULT_SETTINGS.whisperModel,
+				},
+			},
+			{
+				name: "Whisper API key",
+				desc: "Optional bearer token for the transcription endpoint.",
+				visible: isOpenAI,
+				render: (setting) => {
+					setting.addText(text => {
+						text.inputEl.type = "password";
+						text.setPlaceholder(API_KEY_PLACEHOLDER)
+							.setValue(this.plugin.settings.whisperApiKey)
+							.onChange(async (value) => {
+								this.plugin.settings.whisperApiKey = value;
+								await this.plugin.saveSettings();
+							});
 					});
-			});
-
-		const isOpenAI = this.plugin.settings.whisperEndpointUrl.includes('/v1');
-		whisperModelSetting.settingEl.toggle(isOpenAI);
-		whisperApiKeySetting.settingEl.toggle(isOpenAI);
-
-		new Setting(containerEl)
-			.setName("Whisper headers")
-			.setDesc("Optional extra HTTP headers for the transcription endpoint, one per line (name: value).")
-			.addTextArea(text => text
-				.setPlaceholder("X-Custom-Header: value")
-				.setValue(this.plugin.settings.whisperHeaders)
-				.onChange((value) => {
-					this.plugin.settings.whisperHeaders = value;
-					this.debouncedSave();
-				}));
-
-		new Setting(containerEl)
-			.setName("Enrichment endpoint URL")
-			.setDesc("Chat completions API base URL (e.g. http://{host:port}/v1).")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.llmEndpointUrl)
-				.setValue(this.plugin.settings.llmEndpointUrl)
-				.onChange((value) => {
-					this.plugin.settings.llmEndpointUrl = value;
-					this.debouncedSave();
-				}));
-
-		new Setting(containerEl)
-			.setName("Enrichment API key")
-			.setDesc("Optional bearer token for the enrichment endpoint.")
-			.addText(text => {
-				text.inputEl.type = "password";
-				text.setPlaceholder(API_KEY_PLACEHOLDER)
-					.setValue(this.plugin.settings.llmApiKey)
-					.onChange((value) => {
-						this.plugin.settings.llmApiKey = value;
-						this.debouncedSave();
+				},
+			},
+			{
+				name: "Whisper headers",
+				desc: "Optional extra HTTP headers for the transcription endpoint, one per line (name: value).",
+				control: {
+					type: "textarea",
+					key: "whisperHeaders",
+					defaultValue: DEFAULT_SETTINGS.whisperHeaders,
+					placeholder: "X-Custom-Header: value",
+				},
+			},
+			{
+				name: "Enrichment endpoint URL",
+				desc: "Chat completions API base URL (e.g. http://{host:port}/v1).",
+				control: {
+					type: "text",
+					key: "llmEndpointUrl",
+					defaultValue: DEFAULT_SETTINGS.llmEndpointUrl,
+					placeholder: DEFAULT_SETTINGS.llmEndpointUrl,
+				},
+			},
+			{
+				name: "Enrichment API key",
+				desc: "Optional bearer token for the enrichment endpoint.",
+				render: (setting) => {
+					setting.addText(text => {
+						text.inputEl.type = "password";
+						text.setPlaceholder(API_KEY_PLACEHOLDER)
+							.setValue(this.plugin.settings.llmApiKey)
+							.onChange(async (value) => {
+								this.plugin.settings.llmApiKey = value;
+								await this.plugin.saveSettings();
+							});
 					});
-			});
-
-		new Setting(containerEl)
-			.setName("Enrichment headers")
-			.setDesc("Optional extra HTTP headers for the enrichment endpoint, one per line (name: value).")
-			.addTextArea(text => text
-				.setPlaceholder("X-Custom-Header: value")
-				.setValue(this.plugin.settings.llmHeaders)
-				.onChange((value) => {
-					this.plugin.settings.llmHeaders = value;
-					this.debouncedSave();
-				}));
-
-		new Setting(containerEl)
-			.setName("Enrichment model")
-			.setDesc("Model identifier for the enrichment endpoint.")
-			.addText(text => text
-				.setPlaceholder(DEFAULT_SETTINGS.llmModel)
-				.setValue(this.plugin.settings.llmModel)
-				.onChange((value) => {
-					this.plugin.settings.llmModel = value;
-					this.debouncedSave();
-				}));
+				},
+			},
+			{
+				name: "Enrichment headers",
+				desc: "Optional extra HTTP headers for the enrichment endpoint, one per line (name: value).",
+				control: {
+					type: "textarea",
+					key: "llmHeaders",
+					defaultValue: DEFAULT_SETTINGS.llmHeaders,
+					placeholder: "X-Custom-Header: value",
+				},
+			},
+			{
+				name: "Enrichment model",
+				desc: "Model identifier for the enrichment endpoint.",
+				control: {
+					type: "text",
+					key: "llmModel",
+					defaultValue: DEFAULT_SETTINGS.llmModel,
+					placeholder: DEFAULT_SETTINGS.llmModel,
+				},
+			},
+		];
 	}
 }
